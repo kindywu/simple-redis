@@ -1,6 +1,7 @@
 mod array;
 mod bulk_string;
 mod resp_frame;
+mod simple_error;
 mod simple_string;
 
 use bytes::{Buf, BytesMut};
@@ -8,7 +9,8 @@ use bytes::{Buf, BytesMut};
 pub use array::{RespArray, RespNullArray};
 pub use bulk_string::{BulkString, RespNullBulkString};
 pub use resp_frame::*;
-pub use simple_string::SimpleString;
+pub use simple_error::*;
+pub use simple_string::*;
 
 const BUF_CAP: usize = 4096;
 const CRLF: &[u8] = b"\r\n";

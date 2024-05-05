@@ -128,14 +128,18 @@ mod tests {
         let mut buf = BytesMut::new();
         buf.extend_from_slice(b"*2\r\n$4\r\necho\r\n$5\r\nhello\r\n");
 
+        assert_eq!(RespArray::expect_length(&buf), Ok(25));
+
         let frame = RespArray::decode(&mut buf)?;
         assert_eq!(frame, RespArray::new([b"echo".into(), b"hello".into()]));
 
         buf.extend_from_slice(b"*2\r\n$4\r\necho\r\n");
+        assert_eq!(RespArray::expect_length(&buf), Err(RespError::NotComplete));
         let ret = RespArray::decode(&mut buf);
         assert_eq!(ret.unwrap_err(), RespError::NotComplete);
 
         buf.extend_from_slice(b"$5\r\nhello\r\n");
+        assert_eq!(RespArray::expect_length(&buf), Ok(25));
         let frame = RespArray::decode(&mut buf)?;
         assert_eq!(frame, RespArray::new([b"echo".into(), b"hello".into()]));
 

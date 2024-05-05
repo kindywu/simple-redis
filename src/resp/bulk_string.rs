@@ -131,6 +131,8 @@ mod tests {
         let mut buf = BytesMut::new();
         buf.extend_from_slice(b"$5\r\nhello\r\n");
 
+        assert_eq!(BulkString::expect_length(&buf), Ok(11));
+
         let frame = BulkString::decode(&mut buf)?;
         assert_eq!(frame, BulkString::new(b"hello"));
 

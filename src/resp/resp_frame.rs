@@ -2,12 +2,13 @@ use bytes::BytesMut;
 use enum_dispatch::enum_dispatch;
 use thiserror::Error;
 
-use crate::{BulkString, RespArray, RespNullArray, RespNullBulkString, SimpleString};
+use crate::{BulkString, RespArray, RespNullArray, RespNullBulkString, SimpleError, SimpleString};
 
 #[enum_dispatch(RespEncode)]
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum RespFrame {
     SimpleString(SimpleString),
+    SimpleError(SimpleError),
     BulkString(BulkString),
     NullBulkString(RespNullBulkString),
     Array(RespArray),

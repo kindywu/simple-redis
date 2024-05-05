@@ -2,9 +2,9 @@
 
 - simple string: "+OK\r\n"
 - error: "-Error message\r\n"
+- bulk string: "$<length>\r\n<data>\r\n"
 - bulk error: "!<length>\r\n<error>\r\n"
 - integer: ":[<+|->]<value>\r\n"
-- bulk string: "$<length>\r\n<data>\r\n"
 - null bulk string: "$-1\r\n"
 - array: "\*<number-of-elements>\r\n<element-1>...<element-n>"
 - "\*2\r\n$3\r\nget\r\n$5\r\nhello\r\n"
