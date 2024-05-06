@@ -12,7 +12,6 @@ pub use resp_frame::*;
 pub use simple_error::*;
 pub use simple_string::*;
 
-const BUF_CAP: usize = 4096;
 const CRLF: &[u8] = b"\r\n";
 const CRLF_LEN: usize = CRLF.len();
 
@@ -74,7 +73,7 @@ fn parse_length(buf: &[u8], prefix: &str) -> Result<(usize, usize), RespError> {
     let end = extract_simple_frame_data(buf, prefix)?;
     let s = String::from_utf8_lossy(&buf[prefix.len()..end]);
     if s == "-1" {
-        Ok((end, 0usize))
+        Ok((end, 0))
     } else {
         Ok((end, s.parse()?))
     }

@@ -6,6 +6,14 @@
 - pre-commit install
 - git remote add origin https://github.com/kindywu/03-simple-redis.git
 
+# RESP
+
+- Redis serialization protocol specification
+
+# 技术架构
+
+- tokio-util::codec::Framed -> bytes -> encode/decode frame
+
 # 设置日志级别(windows)
 
 - $env:RUST_LOG="info"

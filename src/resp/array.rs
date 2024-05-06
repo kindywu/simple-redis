@@ -4,11 +4,12 @@ use bytes::{Buf, BytesMut};
 
 use crate::{RespDecode, RespEncode, RespError, RespFrame};
 
-use super::{calc_total_length, parse_length, BUF_CAP, CRLF_LEN};
+use super::{calc_total_length, parse_length, CRLF_LEN};
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct RespArray(pub(crate) Vec<RespFrame>);
 
+// const BUF_CAP: usize = 4096;
 const NULL_ARRAY_STRING: &[u8; 5] = b"*-1\r\n";
 
 // - array: "*<number-of-elements>\r\n<element-1>...<element-n>"
@@ -17,7 +18,8 @@ impl RespEncode for RespArray {
         if self.0.is_empty() {
             NULL_ARRAY_STRING.to_vec()
         } else {
-            let mut buf = Vec::with_capacity(BUF_CAP);
+            // let mut buf = Vec::with_capacity(BUF_CAP);
+            let mut buf = Vec::new();
             buf.extend_from_slice(&format!("*{}\r\n", self.0.len()).into_bytes());
             for frame in self.0 {
                 buf.extend_from_slice(&frame.encode());
