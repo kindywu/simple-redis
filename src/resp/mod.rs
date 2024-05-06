@@ -6,8 +6,8 @@ mod simple_string;
 
 use bytes::{Buf, BytesMut};
 
-pub use array::{RespArray, RespNullArray};
-pub use bulk_string::{BulkString, RespNullBulkString};
+pub use array::RespArray;
+pub use bulk_string::BulkString;
 pub use resp_frame::*;
 pub use simple_error::*;
 pub use simple_string::*;
@@ -17,6 +17,7 @@ const CRLF: &[u8] = b"\r\n";
 const CRLF_LEN: usize = CRLF.len();
 
 // utility functions
+#[allow(dead_code)]
 fn extract_fixed_data(
     buf: &mut BytesMut,
     expect: &str,
@@ -72,7 +73,11 @@ fn find_crlf(buf: &[u8], nth: usize) -> Option<usize> {
 fn parse_length(buf: &[u8], prefix: &str) -> Result<(usize, usize), RespError> {
     let end = extract_simple_frame_data(buf, prefix)?;
     let s = String::from_utf8_lossy(&buf[prefix.len()..end]);
-    Ok((end, s.parse()?))
+    if s == "-1" {
+        Ok((end, 0usize))
+    } else {
+        Ok((end, s.parse()?))
+    }
 }
 
 fn calc_total_length(buf: &[u8], end: usize, len: usize, prefix: &str) -> Result<usize, RespError> {

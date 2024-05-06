@@ -2,7 +2,7 @@ use bytes::BytesMut;
 use enum_dispatch::enum_dispatch;
 use thiserror::Error;
 
-use crate::{BulkString, RespArray, RespNullArray, RespNullBulkString, SimpleError, SimpleString};
+use crate::{BulkString, RespArray, SimpleError, SimpleString};
 
 #[enum_dispatch(RespEncode)]
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
@@ -10,9 +10,7 @@ pub enum RespFrame {
     SimpleString(SimpleString),
     SimpleError(SimpleError),
     BulkString(BulkString),
-    NullBulkString(RespNullBulkString),
     Array(RespArray),
-    NullArray(RespNullArray),
 }
 
 // impl RespEncode for RespFrame {
@@ -63,24 +61,16 @@ impl RespDecode for RespFrame {
             }
             Some(b'*') => {
                 // try null array first
-                match RespNullArray::decode(buf) {
+                match RespArray::decode(buf) {
                     Ok(frame) => Ok(frame.into()),
-                    Err(RespError::NotComplete) => Err(RespError::NotComplete),
-                    Err(_) => {
-                        let frame = RespArray::decode(buf)?;
-                        Ok(frame.into())
-                    }
+                    Err(e) => Err(e),
                 }
             }
             Some(b'$') => {
                 // try null bulk string first
-                match RespNullBulkString::decode(buf) {
+                match BulkString::decode(buf) {
                     Ok(frame) => Ok(frame.into()),
-                    Err(RespError::NotComplete) => Err(RespError::NotComplete),
-                    Err(_) => {
-                        let frame = BulkString::decode(buf)?;
-                        Ok(frame.into())
-                    }
+                    Err(e) => Err(e),
                 }
             }
             None => Err(RespError::NotComplete),
