@@ -57,7 +57,10 @@ impl TryFrom<RespFrame> for Command {
     type Error = CommandError;
     fn try_from(v: RespFrame) -> Result<Self, Self::Error> {
         match v {
-            RespFrame::Array(array) => array.try_into(),
+            RespFrame::Array(array) => match array {
+                Some(array) => array.try_into(),
+                _ => Err(CommandError::InvalidCommand("Command is null".to_string())),
+            },
             _ => Err(CommandError::InvalidCommand(
                 "Command must be an Array".to_string(),
             )),
@@ -69,9 +72,12 @@ impl TryFrom<RespArray> for Command {
     type Error = CommandError;
     fn try_from(v: RespArray) -> Result<Self, Self::Error> {
         match v.first() {
-            Some(RespFrame::BulkString(ref cmd)) => match cmd.as_ref() {
-                b"echo" => Ok(Echo::try_from(v)?.into()),
-                _ => Ok(Unrecognized.into()),
+            Some(RespFrame::BulkString(ref cmd)) => match cmd {
+                Some(cmd) => match cmd.as_ref() {
+                    b"echo" => Ok(Echo::try_from(v)?.into()),
+                    _ => Ok(Unrecognized.into()),
+                },
+                _ => Err(CommandError::InvalidCommand("Command is null".to_string())),
             },
             _ => Err(CommandError::InvalidCommand(
                 "Command must have a BulkString as the first argument".to_string(),
@@ -109,12 +115,16 @@ fn validate_command(
     for (i, name) in names.iter().enumerate() {
         match value[i] {
             RespFrame::BulkString(ref cmd) => {
-                if cmd.as_ref().to_ascii_lowercase() != name.as_bytes() {
-                    return Err(CommandError::InvalidCommand(format!(
-                        "Invalid command: expected {}, got {}",
-                        name,
-                        String::from_utf8_lossy(cmd.as_ref())
-                    )));
+                if let Some(cmd) = cmd {
+                    if cmd.as_ref().to_ascii_lowercase() != name.as_bytes() {
+                        return Err(CommandError::InvalidCommand(format!(
+                            "Invalid command: expected {}, got {}",
+                            name,
+                            String::from_utf8_lossy(cmd.as_ref())
+                        )));
+                    }
+                } else {
+                    return Err(CommandError::InvalidCommand("Command is null".to_string()));
                 }
             }
             _ => {

@@ -8,9 +8,9 @@ use crate::{BulkString, RespArray, SimpleError, SimpleString};
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum RespFrame {
     SimpleString(SimpleString),
-    SimpleError(SimpleError),
-    BulkString(BulkString),
-    Array(RespArray),
+    Error(SimpleError),
+    BulkString(Option<BulkString>),
+    Array(Option<RespArray>),
 }
 
 // impl RespEncode for RespFrame {
@@ -28,13 +28,13 @@ impl From<&str> for RespFrame {
 
 impl From<&[u8]> for RespFrame {
     fn from(s: &[u8]) -> Self {
-        BulkString(s.to_vec()).into()
+        Some(BulkString(s.to_vec())).into()
     }
 }
 
 impl<const N: usize> From<&[u8; N]> for RespFrame {
     fn from(s: &[u8; N]) -> Self {
-        BulkString(s.to_vec()).into()
+        Some(BulkString(s.to_vec())).into()
     }
 }
 
@@ -61,14 +61,14 @@ impl RespDecode for RespFrame {
             }
             Some(b'*') => {
                 // try null array first
-                match RespArray::decode(buf) {
+                match Option::<RespArray>::decode(buf) {
                     Ok(frame) => Ok(frame.into()),
                     Err(e) => Err(e),
                 }
             }
             Some(b'$') => {
                 // try null bulk string first
-                match BulkString::decode(buf) {
+                match Option::<BulkString>::decode(buf) {
                     Ok(frame) => Ok(frame.into()),
                     Err(e) => Err(e),
                 }
@@ -84,8 +84,8 @@ impl RespDecode for RespFrame {
     fn expect_length(buf: &[u8]) -> Result<usize, RespError> {
         let mut iter = buf.iter().peekable();
         match iter.peek() {
-            Some(b'*') => RespArray::expect_length(buf),
-            Some(b'$') => BulkString::expect_length(buf),
+            Some(b'*') => Option::<RespArray>::expect_length(buf),
+            Some(b'$') => Option::<BulkString>::expect_length(buf),
             Some(b'+') => SimpleString::expect_length(buf),
             _ => Err(RespError::NotComplete),
         }
