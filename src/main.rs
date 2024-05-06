@@ -4,7 +4,7 @@ use anyhow::Result;
 use futures::SinkExt;
 use tokio_stream::StreamExt;
 
-use simple_redis::{Command, CommandExecutor, RespFrameCodec};
+use simple_redis::{Command, CommandExecutor, RespEncode, RespFrameCodec};
 use tokio::net::{TcpListener, TcpStream};
 use tokio_util::codec::Framed;
 use tracing::{info, warn};
@@ -40,6 +40,10 @@ async fn process_conn(stream: TcpStream, _: SocketAddr) -> Result<()> {
         match framed.next().await {
             Some(Ok(frame)) => {
                 info!("Received frame: {:?}", frame);
+                info!(
+                    "Received frame: {:?}",
+                    String::from_utf8(frame.clone().encode())
+                );
 
                 let cmd = Command::try_from(frame)?;
                 info!("Executing command: {:?}", cmd);
