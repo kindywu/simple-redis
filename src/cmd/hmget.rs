@@ -10,7 +10,7 @@ pub struct HmGet {
 
 impl CommandExecutor for HmGet {
     fn execute(self, _backend: &Backend) -> RespFrame {
-        println!("{:?}", self);
+        // println!("{:?}", self);
         let mut result = RespArray::new(vec![]);
         for member in self.members.iter() {
             match member.as_str() {

@@ -39,7 +39,6 @@ async fn main() -> Result<()> {
 }
 
 async fn process_conn(stream: TcpStream, _: SocketAddr, backend: Backend) -> Result<()> {
-    println!("{:?}", backend);
     let mut framed = Framed::new(stream, RespFrameCodec);
     loop {
         match framed.next().await {
