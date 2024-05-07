@@ -1,4 +1,4 @@
-use crate::{CommandError, CommandExecutor, RespArray, RespFrame};
+use crate::{Backend, CommandError, CommandExecutor, RespArray, RespFrame};
 
 use super::{extract_args, validate_command};
 
@@ -9,9 +9,16 @@ pub struct SisMember {
 }
 
 impl CommandExecutor for SisMember {
-    fn execute(self) -> RespFrame {
-        println!("{:?}", self);
-        1.into()
+    fn execute(self, backend: &Backend) -> RespFrame {
+        // println!("{:?}", self);
+        let exist = match backend.hset.get(&self.key) {
+            Some(set) => match set.get(&self.member) {
+                Some(_) => 1,
+                None => 0,
+            },
+            None => 0,
+        };
+        exist.into()
     }
 }
 
@@ -45,6 +52,21 @@ mod tests {
 
     #[test]
     fn test_sismember() -> Result<()> {
+        let backend = Backend::new();
+        let frame: RespFrame = Some(RespArray::new(vec![
+            Some(BulkString::new("sadd".to_string())).into(),
+            Some(BulkString::new("myset".to_string())).into(),
+            Some(BulkString::new("A".to_string())).into(),
+            Some(BulkString::new("B".to_string())).into(),
+            Some(BulkString::new("C".to_string())).into(),
+            Some(BulkString::new("C".to_string())).into(),
+        ]))
+        .into();
+
+        let sadd = Command::try_from(frame)?;
+        let ret = sadd.execute(&backend);
+        assert_eq!(ret, 3.into());
+
         let frame: RespFrame = Some(RespArray::new(vec![
             Some(BulkString::new("sismember".to_string())).into(),
             Some(BulkString::new("myset".to_string())).into(),
@@ -53,8 +75,19 @@ mod tests {
         .into();
 
         let sis_member = Command::try_from(frame)?;
-        let ret = sis_member.execute();
+        let ret = sis_member.execute(&backend);
         assert_eq!(ret, 1.into());
+
+        let frame: RespFrame = Some(RespArray::new(vec![
+            Some(BulkString::new("sismember".to_string())).into(),
+            Some(BulkString::new("myset".to_string())).into(),
+            Some(BulkString::new("D".to_string())).into(),
+        ]))
+        .into();
+
+        let sis_member = Command::try_from(frame)?;
+        let ret = sis_member.execute(&backend);
+        assert_eq!(ret, 0.into());
         Ok(())
     }
 }

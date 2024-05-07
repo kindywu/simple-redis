@@ -1,4 +1,4 @@
-use crate::{BulkString, CommandError, CommandExecutor, RespArray, RespFrame, RespNull};
+use crate::{Backend, BulkString, CommandError, CommandExecutor, RespArray, RespFrame, RespNull};
 
 use super::{extract_args, validate_command};
 
@@ -9,7 +9,7 @@ pub struct HmGet {
 }
 
 impl CommandExecutor for HmGet {
-    fn execute(self) -> RespFrame {
+    fn execute(self, _backend: &Backend) -> RespFrame {
         println!("{:?}", self);
         let mut result = RespArray::new(vec![]);
         for member in self.members.iter() {
@@ -54,7 +54,7 @@ impl TryFrom<RespArray> for HmGet {
 
 #[cfg(test)]
 mod tests {
-    use crate::{BulkString, Command, RespArray, RespFrame};
+    use crate::{Backend, BulkString, Command, RespArray, RespFrame};
 
     use super::*;
     use anyhow::Result;
@@ -71,7 +71,7 @@ mod tests {
         .into();
 
         let sadd = Command::try_from(frame)?;
-        let ret = sadd.execute();
+        let ret = sadd.execute(&Backend::new());
 
         assert_eq!(
             ret,

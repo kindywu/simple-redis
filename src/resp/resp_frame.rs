@@ -1,3 +1,5 @@
+use std::hash::Hash;
+
 use bytes::BytesMut;
 use enum_dispatch::enum_dispatch;
 use thiserror::Error;
@@ -5,7 +7,7 @@ use thiserror::Error;
 use crate::{BulkString, RespArray, RespNull, SimpleError, SimpleString};
 
 #[enum_dispatch(RespEncode)]
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Hash, Eq, PartialEq, PartialOrd)]
 pub enum RespFrame {
     Null(RespNull),
     SimpleString(SimpleString),
