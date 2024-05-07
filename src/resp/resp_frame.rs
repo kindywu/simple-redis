@@ -2,13 +2,15 @@ use bytes::BytesMut;
 use enum_dispatch::enum_dispatch;
 use thiserror::Error;
 
-use crate::{BulkString, RespArray, SimpleError, SimpleString};
+use crate::{BulkString, RespArray, RespNull, SimpleError, SimpleString};
 
 #[enum_dispatch(RespEncode)]
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum RespFrame {
+    Null(RespNull),
     SimpleString(SimpleString),
     Error(SimpleError),
+    Integer(i64),
     BulkString(Option<BulkString>),
     Array(Option<RespArray>),
 }
@@ -20,6 +22,7 @@ pub enum RespFrame {
 //         }
 //     }
 // }
+
 impl From<&str> for RespFrame {
     fn from(s: &str) -> Self {
         SimpleString(s.to_string()).into()
@@ -59,20 +62,18 @@ impl RespDecode for RespFrame {
                 let frame = SimpleString::decode(buf)?;
                 Ok(frame.into())
             }
-            Some(b'*') => {
-                // try null array first
-                match Option::<RespArray>::decode(buf) {
-                    Ok(frame) => Ok(frame.into()),
-                    Err(e) => Err(e),
-                }
-            }
+            Some(b'-') => match SimpleError::decode(buf) {
+                Ok(frame) => Ok(frame.into()),
+                Err(e) => Err(e),
+            },
             Some(b'$') => {
-                // try null bulk string first
-                match Option::<BulkString>::decode(buf) {
-                    Ok(frame) => Ok(frame.into()),
-                    Err(e) => Err(e),
-                }
+                let frame: Option<BulkString> = Option::<BulkString>::decode(buf)?;
+                Ok(frame.into())
             }
+            Some(b'*') => match Option::<RespArray>::decode(buf) {
+                Ok(frame) => Ok(frame.into()),
+                Err(e) => Err(e),
+            },
             None => Err(RespError::NotComplete),
             _ => Err(RespError::InvalidFrameType(format!(
                 "expect_length: unknown frame type: {:?}",

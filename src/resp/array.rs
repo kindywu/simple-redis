@@ -1,4 +1,4 @@
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 
 use bytes::{Buf, BytesMut};
 
@@ -31,7 +31,6 @@ impl RespEncode for Option<RespArray> {
 
 // - array: "*<number-of-elements>\r\n<element-1>...<element-n>"
 // - "*2\r\n$3\r\nget\r\n$5\r\nhello\r\n"
-// FIXME: need to handle incomplete
 impl RespDecode for Option<RespArray> {
     const PREFIX: &'static str = "*";
     fn decode(buf: &mut BytesMut) -> Result<Self, RespError> {
@@ -104,6 +103,12 @@ impl Deref for RespArray {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl DerefMut for RespArray {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 

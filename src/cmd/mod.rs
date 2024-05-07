@@ -1,9 +1,20 @@
+mod echo;
+mod hmget;
+mod sadd;
+mod sismember;
+
+mod unrecognized;
+
 use enum_dispatch::enum_dispatch;
 // you could also use once_cell instead of lazy_static
 use lazy_static::lazy_static;
 use thiserror::Error;
 
 use crate::{RespArray, RespError, RespFrame, SimpleString};
+
+use self::{
+    echo::Echo, hmget::HmGet, sadd::SAdd, sismember::SisMember, unrecognized::Unrecognized,
+};
 
 lazy_static! {
     static ref RESP_OK: RespFrame = SimpleString::new("OK").into();
@@ -30,27 +41,11 @@ pub trait CommandExecutor {
 #[derive(Debug)]
 pub enum Command {
     Echo(Echo),
-
+    SAdd(SAdd),
+    SisMember(SisMember),
+    HmGet(HmGet),
     // unrecognized command
     Unrecognized(Unrecognized),
-}
-
-#[derive(Debug)]
-pub struct Echo {
-    echo: RespFrame,
-}
-impl CommandExecutor for Echo {
-    fn execute(self) -> RespFrame {
-        self.echo
-    }
-}
-
-#[derive(Debug)]
-pub struct Unrecognized;
-impl CommandExecutor for Unrecognized {
-    fn execute(self) -> RespFrame {
-        RESP_OK.clone()
-    }
 }
 
 impl TryFrom<RespFrame> for Command {
@@ -75,6 +70,9 @@ impl TryFrom<RespArray> for Command {
             Some(RespFrame::BulkString(ref cmd)) => match cmd {
                 Some(cmd) => match cmd.as_ref() {
                     b"echo" => Ok(Echo::try_from(v)?.into()),
+                    b"hmget" => Ok(HmGet::try_from(v)?.into()),
+                    b"sadd" => Ok(SAdd::try_from(v)?.into()),
+                    b"sismember" => Ok(SisMember::try_from(v)?.into()),
                     _ => Ok(Unrecognized.into()),
                 },
                 _ => Err(CommandError::InvalidCommand("Command is null".to_string())),
@@ -86,30 +84,36 @@ impl TryFrom<RespArray> for Command {
     }
 }
 
-impl TryFrom<RespArray> for Echo {
-    type Error = CommandError;
-    fn try_from(value: RespArray) -> Result<Self, Self::Error> {
-        validate_command(&value, &["echo"], 1)?;
-
-        let mut args = extract_args(value, 1)?.into_iter();
-        match args.next() {
-            Some(echo) => Ok(Echo { echo }),
-            _ => Err(CommandError::InvalidArgument("Invalid echo".to_string())),
-        }
-    }
+enum ArgsCheckRule {
+    Equal,
+    EqualOrGreater,
 }
 
 fn validate_command(
     value: &RespArray,
     names: &[&'static str],
     n_args: usize,
+    rule: ArgsCheckRule,
 ) -> Result<(), CommandError> {
-    if value.len() != n_args + names.len() {
-        return Err(CommandError::InvalidArgument(format!(
-            "{} command must have exactly {} argument",
-            names.join(" "),
-            n_args
-        )));
+    match rule {
+        ArgsCheckRule::Equal => {
+            if value.len() != n_args + names.len() {
+                return Err(CommandError::InvalidArgument(format!(
+                    "{} command must have exactly {} argument",
+                    names.join(" "),
+                    n_args
+                )));
+            }
+        }
+        ArgsCheckRule::EqualOrGreater => {
+            if value.len() < n_args + names.len() {
+                return Err(CommandError::InvalidArgument(format!(
+                    "{} command must have minimum required {} argument",
+                    names.join(" "),
+                    n_args
+                )));
+            }
+        }
     }
 
     for (i, name) in names.iter().enumerate() {

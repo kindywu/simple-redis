@@ -1,5 +1,7 @@
 mod array;
 mod bulk_string;
+mod integer;
+mod null;
 mod resp_frame;
 mod simple_error;
 mod simple_string;
@@ -8,6 +10,7 @@ use bytes::{Buf, BytesMut};
 
 pub use array::RespArray;
 pub use bulk_string::BulkString;
+pub use null::*;
 pub use resp_frame::*;
 pub use simple_error::*;
 pub use simple_string::*;
