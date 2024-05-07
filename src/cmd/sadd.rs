@@ -1,4 +1,6 @@
-use crate::{CommandError, CommandExecutor, RespArray, RespFrame};
+// use tracing::info;
+
+use crate::{Backend, CommandError, CommandExecutor, RespArray, RespFrame};
 
 use super::{extract_args, validate_command};
 
@@ -9,10 +11,18 @@ pub struct SAdd {
 }
 
 impl CommandExecutor for SAdd {
-    fn execute(self) -> RespFrame {
-        println!("{:?}", self);
-        let len = self.members.len() as i64;
-        len.into()
+    fn execute(self, backend: &Backend) -> RespFrame {
+        // println!("{:?}", self);
+        let set = backend.hset.entry(self.key).or_default();
+
+        let mut count: i64 = 0;
+        for member in self.members.0 {
+            if set.insert(member) {
+                count += 1;
+            }
+        }
+        // info!("{:?}", count);
+        count.into()
     }
 }
 
@@ -45,17 +55,19 @@ mod tests {
 
     #[test]
     fn test_sadd() -> Result<()> {
+        // sadd myset A B C C
         let frame: RespFrame = Some(RespArray::new(vec![
             Some(BulkString::new("sadd".to_string())).into(),
             Some(BulkString::new("myset".to_string())).into(),
             Some(BulkString::new("A".to_string())).into(),
             Some(BulkString::new("B".to_string())).into(),
             Some(BulkString::new("C".to_string())).into(),
+            Some(BulkString::new("C".to_string())).into(),
         ]))
         .into();
 
         let sadd = Command::try_from(frame)?;
-        let ret = sadd.execute();
+        let ret = sadd.execute(&Backend::new());
         assert_eq!(ret, 3.into());
         Ok(())
     }

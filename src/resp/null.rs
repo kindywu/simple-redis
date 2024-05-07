@@ -4,18 +4,12 @@ use crate::{RespDecode, RespEncode, RespError};
 
 use super::extract_fixed_data;
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd)]
+#[derive(Debug, Clone, Default, Hash, PartialEq, Eq, PartialOrd)]
 pub struct RespNull;
 
 impl RespNull {
     pub fn new() -> Self {
-        Self {}
-    }
-}
-
-impl Default for RespNull {
-    fn default() -> Self {
-        Self::new()
+        Default::default()
     }
 }
 

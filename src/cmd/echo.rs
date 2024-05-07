@@ -1,4 +1,4 @@
-use crate::{CommandError, CommandExecutor, RespArray, RespFrame};
+use crate::{Backend, CommandError, CommandExecutor, RespArray, RespFrame};
 
 use super::{extract_args, validate_command};
 
@@ -8,7 +8,7 @@ pub struct Echo {
 }
 
 impl CommandExecutor for Echo {
-    fn execute(self) -> RespFrame {
+    fn execute(self, _: &Backend) -> RespFrame {
         self.echo
     }
 }
@@ -42,7 +42,7 @@ mod tests {
         .into();
 
         let echo = Command::try_from(frame)?;
-        let ret = echo.execute();
+        let ret = echo.execute(&Backend::new());
         assert_eq!(ret, Some(BulkString::new("hello".to_string())).into());
         Ok(())
     }

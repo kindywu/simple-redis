@@ -2,7 +2,6 @@ mod echo;
 mod hmget;
 mod sadd;
 mod sismember;
-
 mod unrecognized;
 
 use enum_dispatch::enum_dispatch;
@@ -10,7 +9,7 @@ use enum_dispatch::enum_dispatch;
 use lazy_static::lazy_static;
 use thiserror::Error;
 
-use crate::{RespArray, RespError, RespFrame, SimpleString};
+use crate::{Backend, RespArray, RespError, RespFrame, SimpleString};
 
 use self::{
     echo::Echo, hmget::HmGet, sadd::SAdd, sismember::SisMember, unrecognized::Unrecognized,
@@ -34,7 +33,7 @@ pub enum CommandError {
 
 #[enum_dispatch]
 pub trait CommandExecutor {
-    fn execute(self) -> RespFrame;
+    fn execute(self, backend: &Backend) -> RespFrame;
 }
 
 #[enum_dispatch(CommandExecutor)]

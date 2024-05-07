@@ -28,7 +28,7 @@ use super::{parse_length, CRLF_LEN};
 //     }
 // }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd)]
 pub struct BulkString(pub(crate) Vec<u8>);
 
 //

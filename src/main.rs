@@ -4,7 +4,7 @@ use anyhow::Result;
 use futures::SinkExt;
 use tokio_stream::StreamExt;
 
-use simple_redis::{Command, CommandExecutor, RespEncode, RespFrameCodec};
+use simple_redis::{Backend, Command, CommandExecutor, RespEncode, RespFrameCodec};
 use tokio::net::{TcpListener, TcpStream};
 use tokio_util::codec::Framed;
 use tracing::{info, warn};
@@ -15,14 +15,18 @@ const ADDR: &str = "0.0.0.0:6379";
 async fn main() -> Result<()> {
     tracing_subscriber::fmt::init();
 
+    let backend = Backend::new();
+
     info!("Simple-Redis-Server is listening on {}", ADDR);
     let listener = TcpListener::bind(ADDR).await?;
 
     loop {
         let (stream, raddr) = listener.accept().await?;
         info!("Accepted connection from: {}", raddr);
+        let backend = backend.clone();
         tokio::spawn(async move {
-            match process_conn(stream, raddr).await {
+            // println!(":?", backend);
+            match process_conn(stream, raddr, backend).await {
                 Ok(_) => {
                     info!("Connection from {} exited", raddr);
                 }
@@ -34,7 +38,8 @@ async fn main() -> Result<()> {
     }
 }
 
-async fn process_conn(stream: TcpStream, _: SocketAddr) -> Result<()> {
+async fn process_conn(stream: TcpStream, _: SocketAddr, backend: Backend) -> Result<()> {
+    println!("{:?}", backend);
     let mut framed = Framed::new(stream, RespFrameCodec);
     loop {
         match framed.next().await {
@@ -48,7 +53,7 @@ async fn process_conn(stream: TcpStream, _: SocketAddr) -> Result<()> {
                 let cmd = Command::try_from(frame)?;
                 info!("Executing command: {:?}", cmd);
 
-                let frame = cmd.execute();
+                let frame = cmd.execute(&backend);
                 info!("Sending response: {:?}", frame);
                 framed.send(frame).await?;
             }

@@ -1,9 +1,9 @@
-use crate::{CommandExecutor, RespFrame, SimpleString};
+use crate::{Backend, CommandExecutor, RespFrame};
 
 #[derive(Debug)]
 pub struct Unrecognized;
 impl CommandExecutor for Unrecognized {
-    fn execute(self) -> RespFrame {
-        SimpleString("OK".to_string()).into()
+    fn execute(self, _: &Backend) -> RespFrame {
+        "OK".into()
     }
 }
