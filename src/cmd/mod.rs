@@ -1,5 +1,6 @@
 mod echo;
 mod hmget;
+mod hset;
 mod sadd;
 mod sismember;
 mod unrecognized;
@@ -12,7 +13,8 @@ use thiserror::Error;
 use crate::{Backend, RespArray, RespError, RespFrame, SimpleString};
 
 use self::{
-    echo::Echo, hmget::HmGet, sadd::SAdd, sismember::SisMember, unrecognized::Unrecognized,
+    echo::Echo, hmget::HmGet, hset::HSet, sadd::SAdd, sismember::SisMember,
+    unrecognized::Unrecognized,
 };
 
 lazy_static! {
@@ -43,6 +45,7 @@ pub enum Command {
     SAdd(SAdd),
     SisMember(SisMember),
     HmGet(HmGet),
+    HSet(HSet),
     // unrecognized command
     Unrecognized(Unrecognized),
 }
@@ -69,6 +72,7 @@ impl TryFrom<RespArray> for Command {
             Some(RespFrame::BulkString(ref cmd)) => match cmd {
                 Some(cmd) => match cmd.as_ref() {
                     b"echo" => Ok(Echo::try_from(v)?.into()),
+                    b"hset" => Ok(HSet::try_from(v)?.into()),
                     b"hmget" => Ok(HmGet::try_from(v)?.into()),
                     b"sadd" => Ok(SAdd::try_from(v)?.into()),
                     b"sismember" => Ok(SisMember::try_from(v)?.into()),
