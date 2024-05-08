@@ -1,6 +1,7 @@
 mod echo;
 mod hmget;
 mod hset;
+pub mod info;
 mod sadd;
 mod sismember;
 mod unrecognized;
@@ -13,7 +14,7 @@ use thiserror::Error;
 use crate::{Backend, RespArray, RespError, RespFrame, SimpleString};
 
 use self::{
-    echo::Echo, hmget::HmGet, hset::HSet, sadd::SAdd, sismember::SisMember,
+    echo::Echo, hmget::HmGet, hset::HSet, info::Info, sadd::SAdd, sismember::SisMember,
     unrecognized::Unrecognized,
 };
 
@@ -42,6 +43,7 @@ pub trait CommandExecutor {
 #[derive(Debug)]
 pub enum Command {
     Echo(Echo),
+    Info(Info),
     SAdd(SAdd),
     SisMember(SisMember),
     HmGet(HmGet),
@@ -76,7 +78,8 @@ impl TryFrom<RespArray> for Command {
                     b"hmget" => Ok(HmGet::try_from(v)?.into()),
                     b"sadd" => Ok(SAdd::try_from(v)?.into()),
                     b"sismember" => Ok(SisMember::try_from(v)?.into()),
-                    _ => Ok(Unrecognized.into()),
+                    b"info" => Ok(Info::try_from(v)?.into()),
+                    _ => Ok(Unrecognized::new(cmd.clone()).into()),
                 },
                 _ => Err(CommandError::InvalidCommand("Command is null".to_string())),
             },

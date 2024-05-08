@@ -1,4 +1,4 @@
-use std::ops::Deref;
+use std::{fmt, ops::Deref};
 
 use bytes::{Buf, BytesMut};
 
@@ -30,6 +30,17 @@ use super::{parse_length, CRLF_LEN};
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd)]
 pub struct BulkString(pub(crate) Vec<u8>);
+
+impl fmt::Display for BulkString {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // 使用 from_utf8 检查 Vec<u8> 是否是有效的 UTF-8 序列
+        let str_slice = std::str::from_utf8(&self.0);
+        match str_slice {
+            Ok(s) => write!(f, "{}", s),
+            Err(_) => write!(f, "Invalid UTF-8 sequence"),
+        }
+    }
+}
 
 //
 const NULL_BULK_STRING: &[u8; 5] = b"$-1\r\n";
