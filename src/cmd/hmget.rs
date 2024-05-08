@@ -1,4 +1,4 @@
-use crate::{Backend, BulkString, CommandError, CommandExecutor, RespArray, RespFrame, RespNull};
+use crate::{Backend, CommandError, CommandExecutor, RespArray, RespFrame, SimpleError};
 
 use super::{extract_args, validate_command};
 
@@ -9,16 +9,27 @@ pub struct HmGet {
 }
 
 impl CommandExecutor for HmGet {
-    fn execute(self, _backend: &Backend) -> RespFrame {
-        // println!("{:?}", self);
+    fn execute(self, backend: &Backend) -> RespFrame {
         let mut result = RespArray::new(vec![]);
-        for member in self.members.iter() {
-            match member.as_str() {
-                "field1" => result.push(Some(BulkString::new("field1".to_string())).into()),
-                "field2" => result.push(Some(BulkString::new("field2".to_string())).into()),
-                _ => result.push(RespFrame::Null(RespNull {})),
+
+        match backend.hmap.get(&self.key) {
+            Some(item) => {
+                let map = item.value();
+                for member in self.members {
+                    match map.get(&member) {
+                        Some(value) => result.push(value.value().clone()),
+                        None => result.push(RespFrame::BulkString(None)), //兼容RESP 2
+                    }
+                }
             }
-        }
+            None => {
+                return RespFrame::Error(SimpleError::new(format!(
+                    "key {} is not exist",
+                    &self.key
+                )))
+            }
+        };
+
         RespFrame::Array(Some(result))
     }
 }
@@ -61,6 +72,33 @@ mod tests {
 
     #[test]
     fn test_hmget() -> Result<()> {
+        let backend = &Backend::new();
+        let frame: RespFrame = Some(RespArray::new(vec![
+            Some(BulkString::new("hset".to_string())).into(),
+            Some(BulkString::new("myhash".to_string())).into(),
+            Some(BulkString::new("field1".to_string())).into(),
+            Some(BulkString::new("value1".to_string())).into(),
+        ]))
+        .into();
+
+        let sadd = Command::try_from(frame)?;
+        let ret = sadd.execute(backend);
+
+        assert_eq!(ret, 1.into());
+
+        let frame: RespFrame = Some(RespArray::new(vec![
+            Some(BulkString::new("hset".to_string())).into(),
+            Some(BulkString::new("myhash".to_string())).into(),
+            Some(BulkString::new("field2".to_string())).into(),
+            Some(BulkString::new("value2".to_string())).into(),
+        ]))
+        .into();
+
+        let sadd = Command::try_from(frame)?;
+        let ret = sadd.execute(backend);
+
+        assert_eq!(ret, 1.into());
+
         let frame: RespFrame = Some(RespArray::new(vec![
             Some(BulkString::new("hmget".to_string())).into(),
             Some(BulkString::new("myhash".to_string())).into(),
@@ -71,14 +109,14 @@ mod tests {
         .into();
 
         let sadd = Command::try_from(frame)?;
-        let ret = sadd.execute(&Backend::new());
+        let ret = sadd.execute(backend);
 
         assert_eq!(
             ret,
             Some(RespArray::new(vec![
-                Some(BulkString::new("field1".to_string())).into(),
-                Some(BulkString::new("field2".to_string())).into(),
-                RespNull::new().into(),
+                Some(BulkString::new("value1".to_string())).into(),
+                Some(BulkString::new("value2".to_string())).into(),
+                RespFrame::BulkString(None),
             ]))
             .into()
         );

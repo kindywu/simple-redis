@@ -26,8 +26,8 @@
 - git commit -a --amend
 - git push
 
-- git tag -a v3-2-simple-redis
-- git push origin v3-2-simple-redis
+- git tag -a v3-3-simple-redis
+- git push origin v3-3-simple-redis
 
 - git tag
-- git checkout v2-3-metrics-1
+- git checkout v3-3-simple-redis

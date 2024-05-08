@@ -14,6 +14,7 @@ impl RespNull {
 }
 
 // - null: "_\r\n"
+// RESP 3 新特性，Redis Insight不支持
 impl RespEncode for RespNull {
     fn encode(self) -> Vec<u8> {
         b"_\r\n".to_vec()
