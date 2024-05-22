@@ -63,10 +63,11 @@ impl RespEncode for Option<BulkString> {
 impl RespDecode for Option<BulkString> {
     const PREFIX: &'static str = "$";
     fn decode(buf: &mut BytesMut) -> Result<Self, RespError> {
-        let (end, len) = parse_length(buf, Self::PREFIX)?;
-        if len == -1 {
+        if buf.starts_with(NULL_BULK_STRING) {
+            buf.advance(NULL_BULK_STRING.len());
             Ok(None)
         } else {
+            let (end, len) = parse_length(buf, Self::PREFIX)?;
             let len = len as usize;
             let remained = &buf[end + CRLF_LEN..];
             if remained.len() < len + CRLF_LEN {

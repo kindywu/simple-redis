@@ -34,11 +34,12 @@ impl RespEncode for Option<RespArray> {
 impl RespDecode for Option<RespArray> {
     const PREFIX: &'static str = "*";
     fn decode(buf: &mut BytesMut) -> Result<Self, RespError> {
-        let (end, len) = parse_length(buf, Self::PREFIX)?;
-
-        if len == -1 {
+        if buf.starts_with(NULL_ARRAY_STRING) {
+            buf.advance(NULL_ARRAY_STRING.len());
             Ok(None)
         } else {
+            let (end, len) = parse_length(buf, Self::PREFIX)?;
+
             let len = len as usize;
             let total_len = calc_total_length(buf, end, len, Self::PREFIX)?;
 
