@@ -1,4 +1,4 @@
-use crate::{BulkString, RespError, RespFrame, SimpleError, SimpleString};
+use crate::{BulkString, RespError, RespFrame, RespNull, SimpleError, SimpleString};
 use bytes::BytesMut;
 use winnow::ascii::{crlf, dec_int};
 use winnow::combinator::{dispatch, fail, terminated};
@@ -45,6 +45,7 @@ fn parse_resp(input: &mut &[u8]) -> PResult<RespFrame> {
     dispatch! {any;
         b'+' => simple_string.map(RespFrame::SimpleString),
         b'-' => simple_error.map(RespFrame::Error),
+        b'_' => simple_null.map(RespFrame::Null),
         b'$' => bulk_string.map(RespFrame::BulkString),
         _ => fail::<_, _, _>,
     }
@@ -56,6 +57,7 @@ fn parse_length(input: &mut &[u8]) -> PResult<()> {
     dispatch! {any;
         b'+' => simple_parse,
         b'-' => simple_parse,
+        b'_' => simple_parse,
         b'$' => bulk_string_length,
         _ => fail::<_, _, _>,
     }
@@ -68,6 +70,12 @@ fn simple_string(input: &mut &[u8]) -> PResult<SimpleString> {
 
 fn simple_error(input: &mut &[u8]) -> PResult<SimpleError> {
     Ok(SimpleError::new(parse_string(input)?))
+}
+
+// _\r\n
+fn simple_null(input: &mut &[u8]) -> PResult<RespNull> {
+    crlf(input)?;
+    Ok(RespNull)
 }
 
 // $5\r\nhello\r\n
@@ -121,6 +129,20 @@ mod tests {
         let mut buf = BytesMut::from("-ERR\r\n");
         let resp = RespFrame::decode(&mut buf).unwrap();
         assert_eq!(RespFrame::Error(SimpleError::new("ERR")), resp)
+    }
+
+    #[test]
+    fn respv2_decode_null_should_work() {
+        let mut buf = BytesMut::from("+OK\r\n_\r\n+OK\r\n");
+
+        let resp = RespFrame::decode(&mut buf).unwrap();
+        assert_eq!(RespFrame::SimpleString(SimpleString::new("OK")), resp);
+
+        let resp = RespFrame::decode(&mut buf).unwrap();
+        assert_eq!(RespFrame::Null(RespNull), resp);
+
+        let resp = RespFrame::decode(&mut buf).unwrap();
+        assert_eq!(RespFrame::SimpleString(SimpleString::new("OK")), resp);
     }
 
     #[test]
