@@ -31,6 +31,8 @@ use super::{parse_length, CRLF_LEN};
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd)]
 pub struct BulkString(pub(crate) Vec<u8>);
 
+// pub struct BulkString(pub(crate) Option<Vec<u8>>);
+
 impl fmt::Display for BulkString {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // 使用 from_utf8 检查 Vec<u8> 是否是有效的 UTF-8 序列
