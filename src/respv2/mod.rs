@@ -147,12 +147,18 @@ mod tests {
 
     #[test]
     fn respv2_decode_bulk_string_should_work() {
-        let test_cases = vec!["$5\r\nhello\r\n", "$0\r\n\r\n", "$-1\r\n"];
-        for test in test_cases {
+        let test_cases = ["$5\r\nhello\r\n", "$0\r\n\r\n", "$-1\r\n"];
+        let test_expecteds = [
+            RespFrame::BulkString(Some(BulkString::new("hello"))),
+            RespFrame::BulkString(Some(BulkString::new(""))),
+            RespFrame::BulkString(None),
+        ];
+
+        for (&test, excepted) in test_cases.iter().zip(test_expecteds) {
             let mut buf = BytesMut::from(test);
-            let ret = RespFrame::decode(&mut buf);
-            println!("{:?}", ret);
-            assert!(ret.is_ok())
+            let result = RespFrame::decode(&mut buf);
+            assert!(result.is_ok());
+            assert_eq!(excepted, result.unwrap());
         }
     }
 }
