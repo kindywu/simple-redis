@@ -2,9 +2,10 @@ mod array;
 mod bool;
 mod bulk_string;
 mod double;
+mod frame;
 mod integer;
+mod map;
 mod null;
-mod resp_frame;
 mod simple_error;
 mod simple_string;
 
@@ -14,10 +15,11 @@ pub use array::RespArray;
 pub use bulk_string::BulkString;
 use bytes::{Buf, BytesMut};
 use enum_dispatch::enum_dispatch;
+pub use frame::*;
 pub use null::*;
-pub use resp_frame::*;
 pub use simple_error::*;
 pub use simple_string::*;
+use std::collections::BTreeMap;
 use std::hash::Hash;
 use thiserror::Error;
 

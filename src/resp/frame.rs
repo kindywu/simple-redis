@@ -1,4 +1,4 @@
-use std::hash::Hash;
+use std::{collections::BTreeMap, hash::Hash};
 
 use bytes::BytesMut;
 use enum_dispatch::enum_dispatch;
@@ -18,6 +18,7 @@ pub enum RespFrame {
     BulkString(Option<BulkString>),
     Array(Option<RespArray>),
     Double(Double),
+    Map(BTreeMap<RespFrame, RespFrame>),
 }
 
 // impl RespEncode for RespFrame {
