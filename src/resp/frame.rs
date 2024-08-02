@@ -84,6 +84,7 @@ impl RespDecode for RespFrame {
             Some(b'*') => Option::<RespArray>::expect_length(buf),
             Some(b'$') => Option::<BulkString>::expect_length(buf),
             Some(b'+') => SimpleString::expect_length(buf),
+            Some(b'-') => SimpleError::expect_length(buf),
             _ => Err(RespError::NotComplete),
         }
     }
