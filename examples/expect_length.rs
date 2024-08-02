@@ -10,29 +10,29 @@ use winnow::{
 const CRLF: &[u8] = b"\r\n";
 
 fn main() {
-    // let buf = b"+OK\r\n";
-    // expect_length(buf).unwrap();
-    // let buf = b"+OK\r";
-    // println!("{:?}", expect_length(buf));
+    let buf = b"+OK\r\n";
+    expect_length(buf).unwrap();
+    let buf = b"+OK\r";
+    println!("{:?}", expect_length(buf));
 
-    // let buf = b"$5\r\nhello\r\n";
-    // expect_length(buf).unwrap();
+    let buf = b"$5\r\nhello\r\n";
+    expect_length(buf).unwrap();
 
-    // let buf = b"$-1\r\n";
-    // expect_length(buf).unwrap();
-    // let buf = b"$0\r\n";
-    // expect_length(buf).unwrap();
-    // let buf = b"$5\r\nhello\r\n";
-    // expect_length(buf).unwrap();
-    // let buf = b"$5\r\nhello\r";
-    // println!("{:?}", expect_length(buf));
+    let buf = b"$-1\r\n";
+    expect_length(buf).unwrap();
+    let buf = b"$0\r\n\r\n";
+    expect_length(buf).unwrap();
+    let buf = b"$5\r\nhello\r\n";
+    expect_length(buf).unwrap();
+    let buf = b"$5\r\nhello\r";
+    println!("{:?}", expect_length(buf));
 
-    // let buf = b"*-1\r\n";
-    // expect_length(buf).unwrap();
-    // let buf = b"*0\r\n";
-    // expect_length(buf).unwrap();
-    // let buf = b"*2\r\n$4\r\necho\r\n$5\r\nhello\r\n";
-    // expect_length(buf).unwrap();
+    let buf = b"*-1\r\n";
+    expect_length(buf).unwrap();
+    let buf = b"*0\r\n";
+    expect_length(buf).unwrap();
+    let buf = b"*2\r\n$4\r\necho\r\n$5\r\nhello\r\n";
+    expect_length(buf).unwrap();
 
     let buf = b"%2\r\n+hello\r\n$5\r\nworld\r\n+foo\r\n$3\r\nbar\r\n";
     expect_length(buf).unwrap();
@@ -163,6 +163,14 @@ fn cal_map(input: &[u8]) -> PResult<(&[u8], usize)> {
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[test]
+    fn cal_crlf_should_fail() -> PResult<()> {
+        let buf = b"abc";
+        let result = cal_crlf(buf);
+        assert!(result.is_err());
+        Ok(())
+    }
 
     #[test]
     fn cal_crlf_should_work() -> PResult<()> {
