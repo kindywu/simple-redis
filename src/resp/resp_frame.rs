@@ -2,9 +2,10 @@ use std::hash::Hash;
 
 use bytes::BytesMut;
 use enum_dispatch::enum_dispatch;
-use thiserror::Error;
 
 use crate::{BulkString, RespArray, RespNull, SimpleError, SimpleString};
+
+use super::{RespDecode, RespError};
 
 #[enum_dispatch(RespEncode)]
 #[derive(Debug, Clone, Hash, Eq, PartialEq, PartialOrd)]
@@ -43,17 +44,7 @@ impl<const N: usize> From<&[u8; N]> for RespFrame {
     }
 }
 
-#[enum_dispatch(RespEncode)]
-pub trait RespEncode {
-    fn encode(self) -> Vec<u8>;
-}
-
 // #[enum_dispatch(RespDecode)]
-pub trait RespDecode: Sized {
-    const PREFIX: &'static str;
-    fn decode(buf: &mut BytesMut) -> Result<Self, RespError>;
-    fn expect_length(buf: &[u8]) -> Result<usize, RespError>;
-}
 
 impl RespDecode for RespFrame {
     const PREFIX: &'static str = "";
@@ -93,22 +84,4 @@ impl RespDecode for RespFrame {
             _ => Err(RespError::NotComplete),
         }
     }
-}
-
-#[derive(Error, Debug, PartialEq, Eq)]
-pub enum RespError {
-    #[error("Invalid frame: {0}")]
-    InvalidFrame(String),
-    #[error("Invalid frame type: {0}")]
-    InvalidFrameType(String),
-    #[error("Invalid frame length： {0}")]
-    InvalidFrameLength(isize),
-    #[error("Frame is not complete")]
-    NotComplete,
-    #[error("Parse error: {0}")]
-    ParseIntError(#[from] std::num::ParseIntError),
-    #[error("Utf8 error: {0}")]
-    Utf8Error(#[from] std::string::FromUtf8Error),
-    #[error("Parse float error: {0}")]
-    ParseFloatError(#[from] std::num::ParseFloatError),
 }

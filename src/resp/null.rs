@@ -1,8 +1,6 @@
 use bytes::BytesMut;
 
-use crate::{RespDecode, RespEncode, RespError};
-
-use super::extract_fixed_data;
+use super::{extract_fixed_data, RespDecode, RespEncode, RespError};
 
 #[derive(Debug, Clone, Default, Hash, PartialEq, Eq, PartialOrd)]
 pub struct RespNull;

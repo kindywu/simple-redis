@@ -10,13 +10,43 @@ use bytes::{Buf, BytesMut};
 
 pub use array::RespArray;
 pub use bulk_string::BulkString;
+use enum_dispatch::enum_dispatch;
 pub use null::*;
 pub use resp_frame::*;
 pub use simple_error::*;
 pub use simple_string::*;
+use thiserror::Error;
 
 const CRLF: &[u8] = b"\r\n";
 const CRLF_LEN: usize = CRLF.len();
+
+#[enum_dispatch(RespEncode)]
+pub trait RespEncode {
+    fn encode(self) -> Vec<u8>;
+}
+
+pub trait RespDecode: Sized {
+    const PREFIX: &'static str;
+    fn decode(buf: &mut BytesMut) -> Result<Self, RespError>;
+    fn expect_length(buf: &[u8]) -> Result<usize, RespError>;
+}
+#[derive(Error, Debug, PartialEq, Eq)]
+pub enum RespError {
+    #[error("Invalid frame: {0}")]
+    InvalidFrame(String),
+    #[error("Invalid frame type: {0}")]
+    InvalidFrameType(String),
+    #[error("Invalid frame length： {0}")]
+    InvalidFrameLength(isize),
+    #[error("Frame is not complete")]
+    NotComplete,
+    #[error("Parse error: {0}")]
+    ParseIntError(#[from] std::num::ParseIntError),
+    #[error("Utf8 error: {0}")]
+    Utf8Error(#[from] std::string::FromUtf8Error),
+    #[error("Parse float error: {0}")]
+    ParseFloatError(#[from] std::num::ParseFloatError),
+}
 
 // utility functions
 #[allow(dead_code)]

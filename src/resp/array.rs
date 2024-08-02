@@ -2,9 +2,9 @@ use std::ops::{Deref, DerefMut};
 
 use bytes::{Buf, BytesMut};
 
-use crate::{RespDecode, RespEncode, RespError, RespFrame};
-
-use super::{calc_total_length, parse_length, CRLF_LEN};
+use super::{
+    calc_total_length, parse_length, RespDecode, RespEncode, RespError, RespFrame, CRLF_LEN,
+};
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq, PartialOrd)]
 pub struct RespArray(pub(crate) Vec<RespFrame>);
@@ -116,7 +116,7 @@ impl DerefMut for RespArray {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::BulkString;
+    use crate::{BulkString, SimpleString};
     use anyhow::Result;
 
     #[test]
@@ -136,14 +136,18 @@ mod tests {
     #[test]
     fn test_array_decode() -> Result<()> {
         let mut buf = BytesMut::new();
-        buf.extend_from_slice(b"*2\r\n$4\r\necho\r\n$5\r\nhello\r\n");
+        buf.extend_from_slice(b"*3\r\n$4\r\necho\r\n$5\r\nhello\r\n+OK\r\n");
 
-        assert_eq!(Option::<RespArray>::expect_length(&buf), Ok(25));
+        assert_eq!(Option::<RespArray>::expect_length(&buf), Ok(30));
 
         let frame = Option::<RespArray>::decode(&mut buf)?;
         assert_eq!(
             frame,
-            Some(RespArray::new([b"echo".into(), b"hello".into()]))
+            Some(RespArray::new([
+                b"echo".into(),
+                b"hello".into(),
+                RespFrame::SimpleString(SimpleString::new("OK"))
+            ]))
         );
 
         buf.extend_from_slice(b"*2\r\n$4\r\necho\r\n");

@@ -2,7 +2,8 @@ use std::ops::Deref;
 
 use bytes::BytesMut;
 
-use crate::{RespDecode, RespEncode, RespError};
+use super::{RespDecode, RespEncode, RespError};
+
 use anyhow::Result;
 
 use super::{extract_simple_frame_data, CRLF_LEN};

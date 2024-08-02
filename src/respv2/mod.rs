@@ -1,8 +1,8 @@
-use crate::{BulkString, RespError, RespFrame, RespNull, SimpleError, SimpleString};
+use crate::{BulkString, RespArray, RespError, RespFrame, RespNull, SimpleError, SimpleString};
 use bytes::BytesMut;
 use winnow::ascii::{crlf, dec_int};
 use winnow::combinator::{dispatch, fail, terminated};
-use winnow::token::any;
+use winnow::token::{any, take};
 use winnow::{token::take_until, PResult, Parser};
 
 #[allow(unused)]
@@ -44,8 +44,10 @@ fn parse_resp(input: &mut &[u8]) -> PResult<RespFrame> {
 
     dispatch! {any;
         b'+' => simple_string.map(RespFrame::SimpleString),
-        b'-' => simple_error.map(RespFrame::Error),
-        b'_' => simple_null.map(RespFrame::Null),
+        b'-' => error.map(RespFrame::Error),
+        b'_' => null.map(RespFrame::Null),
+        b':' => integer.map(RespFrame::Integer),
+        b'*' => array.map(RespFrame::Array),
         b'$' => bulk_string.map(RespFrame::BulkString),
         _ => fail::<_, _, _>,
     }
@@ -58,6 +60,8 @@ fn parse_length(input: &mut &[u8]) -> PResult<()> {
         b'+' => simple_parse,
         b'-' => simple_parse,
         b'_' => simple_parse,
+        b':' => simple_parse,
+        b'*' => array_length,
         b'$' => bulk_string_length,
         _ => fail::<_, _, _>,
     }
@@ -68,14 +72,19 @@ fn simple_string(input: &mut &[u8]) -> PResult<SimpleString> {
     Ok(SimpleString::new(parse_string(input)?))
 }
 
-fn simple_error(input: &mut &[u8]) -> PResult<SimpleError> {
+fn error(input: &mut &[u8]) -> PResult<SimpleError> {
     Ok(SimpleError::new(parse_string(input)?))
 }
 
 // _\r\n
-fn simple_null(input: &mut &[u8]) -> PResult<RespNull> {
+fn null(input: &mut &[u8]) -> PResult<RespNull> {
     crlf(input)?;
     Ok(RespNull)
+}
+
+// :[<+|->]<value>\r\n
+fn integer(input: &mut &[u8]) -> PResult<i64> {
+    dec_int(input)
 }
 
 // $5\r\nhello\r\n
@@ -83,21 +92,60 @@ fn simple_null(input: &mut &[u8]) -> PResult<RespNull> {
 // $-1\r\n
 fn bulk_string(input: &mut &[u8]) -> PResult<Option<BulkString>> {
     let len: i64 = dec_int(input)?;
+    crlf(input)?;
     if len == -1 {
         return Ok(None);
     }
-    crlf(input)?;
     Ok(Some(BulkString::new(parse_string(input)?)))
 }
 
 fn bulk_string_length(input: &mut &[u8]) -> PResult<()> {
     let len: i64 = dec_int(input)?;
-    if len > -1 {
+    crlf(input)?;
+    if len == -1 {
+    } else if len == 0 {
+        crlf(input)?;
+    } else {
+        take(len as usize).value(()).parse_next(input)?;
         crlf(input)?;
     }
-    terminated(take_until(0.., CRLF), CRLF)
-        .value(())
-        .parse_next(input)
+
+    Ok(())
+    // if len > -1 {
+    //     crlf(input)?;
+    // }
+    // terminated(take_until(0.., CRLF), CRLF)
+    //     .value(())
+    //     .parse_next(input)
+}
+
+// *3\r\n$4\r\necho\r\n$5\r\nhello\r\n+OK\r\n
+// *0\r\n
+// *-1\r\n
+fn array(input: &mut &[u8]) -> PResult<Option<RespArray>> {
+    let len: i64 = dec_int(input)?;
+    crlf(input)?;
+    if len == -1 {
+        return Ok(None);
+    }
+    let mut arr = Vec::new();
+    for _ in 0..len {
+        arr.push(parse_resp(input)?);
+    }
+
+    Ok(Some(RespArray::new(arr)))
+}
+
+fn array_length(input: &mut &[u8]) -> PResult<()> {
+    let len: i64 = dec_int(input)?;
+    crlf(input)?;
+    if len > 0 {
+        for _ in 0..len {
+            parse_length(input)?
+        }
+    }
+
+    Ok(())
 }
 
 fn parse_string(input: &mut &[u8]) -> PResult<String> {
@@ -125,7 +173,25 @@ mod tests {
     }
 
     #[test]
-    fn respv2_decode_simple_error_should_work() {
+    fn respv2_decode_uncomple_simple_string_should_fail() {
+        let mut buf = BytesMut::from("+OK\r");
+        let resp = RespFrame::decode(&mut buf);
+        assert_eq!(RespError::NotComplete, resp.unwrap_err())
+    }
+
+    #[test]
+    fn respv2_decode_integer_should_work() {
+        let mut buf = BytesMut::from(":10\r\n");
+        let resp = RespFrame::decode(&mut buf).unwrap();
+        assert_eq!(RespFrame::Integer(10), resp);
+
+        let mut buf = BytesMut::from(":-10\r\n");
+        let resp = RespFrame::decode(&mut buf).unwrap();
+        assert_eq!(RespFrame::Integer(-10), resp)
+    }
+
+    #[test]
+    fn respv2_decode_error_should_work() {
         let mut buf = BytesMut::from("-ERR\r\n");
         let resp = RespFrame::decode(&mut buf).unwrap();
         assert_eq!(RespFrame::Error(SimpleError::new("ERR")), resp)
@@ -152,6 +218,31 @@ mod tests {
             RespFrame::BulkString(Some(BulkString::new("hello"))),
             RespFrame::BulkString(Some(BulkString::new(""))),
             RespFrame::BulkString(None),
+        ];
+
+        for (&test, excepted) in test_cases.iter().zip(test_expecteds) {
+            let mut buf = BytesMut::from(test);
+            let result = RespFrame::decode(&mut buf);
+            assert!(result.is_ok());
+            assert_eq!(excepted, result.unwrap());
+        }
+    }
+
+    #[test]
+    fn respv2_decode_array_string_should_work() {
+        let test_cases = [
+            "*-1\r\n",
+            "*0\r\n",
+            "*3\r\n$4\r\necho\r\n$5\r\nhello\r\n+OK\r\n",
+        ];
+        let test_expecteds = [
+            RespFrame::Array(None),
+            RespFrame::Array(Some(RespArray::new(vec![]))),
+            RespFrame::Array(Some(RespArray::new([
+                b"echo".into(),
+                b"hello".into(),
+                RespFrame::SimpleString(SimpleString::new("OK")),
+            ]))),
         ];
 
         for (&test, excepted) in test_cases.iter().zip(test_expecteds) {
