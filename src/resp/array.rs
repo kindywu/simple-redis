@@ -6,7 +6,7 @@ use super::{
     calc_total_length, parse_length, RespDecode, RespEncode, RespError, RespFrame, CRLF_LEN,
 };
 
-#[derive(Debug, Clone, Hash, Eq, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Hash, Eq, PartialEq, Ord, PartialOrd)]
 pub struct RespArray(pub(crate) Vec<RespFrame>);
 
 // const BUF_CAP: usize = 4096;

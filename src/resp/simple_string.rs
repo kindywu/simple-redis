@@ -8,7 +8,7 @@ use anyhow::Result;
 
 use super::{extract_simple_frame_data, CRLF_LEN};
 // use crate::RespFrame;
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd)]
+#[derive(Debug, Clone, Hash, Ord, PartialEq, Eq, PartialOrd)]
 pub struct SimpleString(pub(crate) String);
 
 impl SimpleString {

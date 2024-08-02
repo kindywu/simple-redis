@@ -1,6 +1,8 @@
+use std::collections::BTreeMap;
+
 use crate::resp::Double;
 use crate::{BulkString, RespArray, RespFrame, RespNull, SimpleError, SimpleString};
-use winnow::ascii::{crlf, dec_int, float};
+use winnow::ascii::{crlf, dec_int, digit1, float};
 use winnow::combinator::{alt, dispatch, fail, terminated};
 use winnow::token::{any, take};
 use winnow::{token::take_until, PResult, Parser};
@@ -23,7 +25,7 @@ pub fn parse_resp(input: &mut &[u8]) -> PResult<RespFrame> {
         b'$' => bulk_string.map(RespFrame::BulkString),
         b'#' => boolean.map(RespFrame::Boolean),
         b',' => double.map(RespFrame::Double),
-
+        b'%' => map.map(RespFrame::Map),
         _ => fail::<_, _, _>,
     }
     .parse_next(input)
@@ -39,6 +41,7 @@ pub fn parse_length(input: &mut &[u8]) -> PResult<()> {
         b'#' => simple_parse,
         b',' => simple_parse,
         b'*' => array_length,
+        b'%' => map_length,
         b'$' => bulk_string_length,
         _ => fail::<_, _, _>,
     }
@@ -136,6 +139,30 @@ fn array_length(input: &mut &[u8]) -> PResult<()> {
     Ok(())
 }
 
+// "%2\r\n+hello\r\n$5\r\nworld\r\n+foo\r\n$3\r\nbar\r\n"
+fn map(input: &mut &[u8]) -> PResult<BTreeMap<RespFrame, RespFrame>> {
+    let len: u32 = digit1.parse_to().parse_next(input)?;
+    crlf(input)?;
+    let mut map = BTreeMap::new();
+    for _ in 0..len {
+        let key = parse_resp(input)?;
+        let value = parse_resp(input)?;
+        map.insert(key, value);
+    }
+    Ok(map)
+}
+
+fn map_length(input: &mut &[u8]) -> PResult<()> {
+    let len: u32 = digit1.parse_to().parse_next(input)?;
+    crlf(input)?;
+    for _ in 0..len {
+        let _ = parse_resp(input)?;
+        let _ = parse_resp(input)?;
+    }
+
+    Ok(())
+}
+
 fn parse_string(input: &mut &[u8]) -> PResult<String> {
     terminated(take_until(0.., CRLF), CRLF)
         .map(|v| String::from_utf8_lossy(v).to_string())
@@ -144,7 +171,6 @@ fn parse_string(input: &mut &[u8]) -> PResult<String> {
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
 
     #[test]
@@ -152,5 +178,34 @@ mod tests {
         let s = b"+OK\r\n";
         let resp = parse_resp(&mut s.as_ref()).unwrap();
         assert_eq!(RespFrame::SimpleString(SimpleString::new("OK")), resp)
+    }
+
+    #[test]
+    fn respv2_simple_string_should_fail() {
+        let s = b"+OK\r";
+        let resp = parse_resp(&mut s.as_ref());
+        assert!(resp.is_err());
+    }
+
+    #[test]
+    fn respv2_map_should_work() {
+        let s = b"%2\r\n+hello\r\n$5\r\nworld\r\n+foo\r\n$3\r\nbar\r\n";
+        let resp = parse_resp(&mut s.as_ref());
+        let mut map = BTreeMap::new();
+        map.insert(
+            SimpleString::new("hello").into(),
+            Some(BulkString::new("world")).into(),
+        );
+        map.insert(
+            SimpleString::new("foo").into(),
+            Some(BulkString::new("bar")).into(),
+        );
+        assert!(resp.is_ok());
+        assert_eq!(RespFrame::Map(map), resp.unwrap());
+
+        let s = b"%0\r\n";
+        let resp = parse_resp(&mut s.as_ref());
+        assert!(resp.is_ok());
+        assert_eq!(RespFrame::Map(BTreeMap::new()), resp.unwrap())
     }
 }

@@ -26,7 +26,7 @@ use thiserror::Error;
 const CRLF: &[u8] = b"\r\n";
 const CRLF_LEN: usize = CRLF.len();
 
-#[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Double(pub f64);
 
 impl Eq for Double {}
@@ -34,6 +34,20 @@ impl Eq for Double {}
 impl Hash for Double {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.0.to_bits().hash(state);
+    }
+}
+
+impl Ord for Double {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.0
+            .partial_cmp(&other.0)
+            .expect("OrderedFloat cannot compare NaN values")
+    }
+}
+
+impl PartialOrd for Double {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
     }
 }
 

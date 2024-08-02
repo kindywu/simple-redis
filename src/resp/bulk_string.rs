@@ -26,7 +26,7 @@ use super::{parse_length, RespDecode, RespEncode, RespError, CRLF_LEN};
 //     }
 // }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd)]
+#[derive(Debug, Clone, Hash, PartialEq, Ord, Eq, PartialOrd)]
 pub struct BulkString(pub(crate) Vec<u8>);
 
 // pub struct BulkString(pub(crate) Option<Vec<u8>>);

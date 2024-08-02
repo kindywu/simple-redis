@@ -8,7 +8,7 @@ use crate::{BulkString, RespArray, RespNull, SimpleError, SimpleString};
 use super::{Double, RespDecode, RespError};
 
 #[enum_dispatch(RespEncode)]
-#[derive(Debug, Clone, PartialEq, Hash, Eq, PartialOrd)]
+#[derive(Debug, Clone, PartialEq, Ord, Hash, Eq, PartialOrd)]
 pub enum RespFrame {
     Null(RespNull),
     SimpleString(SimpleString),

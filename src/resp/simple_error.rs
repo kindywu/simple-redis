@@ -5,7 +5,7 @@ use anyhow::Result;
 
 use super::{extract_simple_frame_data, RespDecode, RespEncode, RespError, CRLF_LEN};
 // use crate::RespFrame;
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd)]
+#[derive(Debug, Clone, Hash, Ord, PartialEq, Eq, PartialOrd)]
 pub struct SimpleError(pub(crate) String);
 
 impl SimpleError {
