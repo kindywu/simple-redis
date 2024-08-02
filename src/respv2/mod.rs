@@ -1,6 +1,7 @@
+use crate::resp::Double;
 use crate::{BulkString, RespArray, RespError, RespFrame, RespNull, SimpleError, SimpleString};
 use bytes::BytesMut;
-use winnow::ascii::{crlf, dec_int};
+use winnow::ascii::{crlf, dec_int, float};
 use winnow::combinator::{alt, dispatch, fail, terminated};
 use winnow::token::{any, take};
 use winnow::{token::take_until, PResult, Parser};
@@ -50,6 +51,8 @@ fn parse_resp(input: &mut &[u8]) -> PResult<RespFrame> {
         b'*' => array.map(RespFrame::Array),
         b'$' => bulk_string.map(RespFrame::BulkString),
         b'#' => boolean.map(RespFrame::Boolean),
+        b',' => double.map(RespFrame::Double),
+
         _ => fail::<_, _, _>,
     }
     .parse_next(input)
@@ -63,6 +66,7 @@ fn parse_length(input: &mut &[u8]) -> PResult<()> {
         b'_' => simple_parse,
         b':' => simple_parse,
         b'#' => simple_parse,
+        b',' => simple_parse,
         b'*' => array_length,
         b'$' => bulk_string_length,
         _ => fail::<_, _, _>,
@@ -82,6 +86,11 @@ fn error(input: &mut &[u8]) -> PResult<SimpleError> {
 fn boolean(input: &mut &[u8]) -> PResult<bool> {
     let b = alt(('t', 'f')).parse_next(input)?;
     Ok(b == 't')
+}
+
+// - float: ",3.14\r\n"
+fn double(input: &mut &[u8]) -> PResult<Double> {
+    terminated(float, CRLF).map(Double).parse_next(input)
 }
 
 // _\r\n

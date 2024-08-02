@@ -5,7 +5,7 @@ use enum_dispatch::enum_dispatch;
 
 use crate::{BulkString, RespArray, RespNull, SimpleError, SimpleString};
 
-use super::{RespDecode, RespError};
+use super::{Double, RespDecode, RespError};
 
 #[enum_dispatch(RespEncode)]
 #[derive(Debug, Clone, PartialEq, Hash, Eq, PartialOrd)]
@@ -17,6 +17,7 @@ pub enum RespFrame {
     Boolean(bool),
     BulkString(Option<BulkString>),
     Array(Option<RespArray>),
+    Double(Double),
 }
 
 // impl RespEncode for RespFrame {

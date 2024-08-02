@@ -1,25 +1,47 @@
 mod array;
 mod bool;
 mod bulk_string;
+mod double;
 mod integer;
 mod null;
 mod resp_frame;
 mod simple_error;
 mod simple_string;
 
-use bytes::{Buf, BytesMut};
+use std::{hash::Hasher, ops::Deref};
 
 pub use array::RespArray;
 pub use bulk_string::BulkString;
+use bytes::{Buf, BytesMut};
 use enum_dispatch::enum_dispatch;
 pub use null::*;
 pub use resp_frame::*;
 pub use simple_error::*;
 pub use simple_string::*;
+use std::hash::Hash;
 use thiserror::Error;
 
 const CRLF: &[u8] = b"\r\n";
 const CRLF_LEN: usize = CRLF.len();
+
+#[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
+pub struct Double(pub f64);
+
+impl Eq for Double {}
+
+impl Hash for Double {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.to_bits().hash(state);
+    }
+}
+
+impl Deref for Double {
+    type Target = f64;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 #[enum_dispatch(RespEncode)]
 pub trait RespEncode {
