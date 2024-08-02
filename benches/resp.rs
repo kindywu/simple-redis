@@ -44,7 +44,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     });
 
     c.bench_function("v2_decode", |b| {
-        b.iter(|| black_box(v2_decode(black_box(&mut buf.clone()))))
+        b.iter(|| black_box(v2_decode(&mut buf.clone())))
     });
 }
 
