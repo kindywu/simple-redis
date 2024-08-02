@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.82"
 bytes = "1.6.0"
+criterion = "0.5.1"
 dashmap = "5.5.3"
 enum_dispatch = "0.3.13"
 futures = "0.3.30"
@@ -19,3 +20,7 @@ tokio-util = { version = "0.7.11", features = ["codec"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 winnow = { version = "0.6.18", features = ["simd"] }
+
+[[bench]]
+name = "resp"
+harness = false

@@ -4,7 +4,9 @@ use anyhow::Result;
 use futures::SinkExt;
 use tokio_stream::StreamExt;
 
-use simple_redis::{Backend, Command, CommandExecutor, RespEncode, RespFrameCodec};
+use simple_redis::{
+    Backend, Command, CommandExecutor, RespDecodeV2, RespEncode, RespError, RespFrame,
+};
 use tokio::net::{TcpListener, TcpStream};
 use tokio_util::codec::Framed;
 use tracing::{info, warn};
@@ -58,6 +60,34 @@ async fn process_conn(stream: TcpStream, _: SocketAddr, backend: Backend) -> Res
             }
             Some(Err(e)) => return Err(e),
             None => return Ok(()),
+        }
+    }
+}
+
+use tokio_util::codec::{Decoder, Encoder};
+
+#[derive(Debug)]
+pub struct RespFrameCodec;
+
+impl Encoder<RespFrame> for RespFrameCodec {
+    type Error = anyhow::Error;
+
+    fn encode(&mut self, item: RespFrame, dst: &mut bytes::BytesMut) -> Result<()> {
+        let encoded = item.encode();
+        dst.extend_from_slice(&encoded);
+        Ok(())
+    }
+}
+
+impl Decoder for RespFrameCodec {
+    type Item = RespFrame;
+    type Error = anyhow::Error;
+
+    fn decode(&mut self, src: &mut bytes::BytesMut) -> Result<Option<RespFrame>> {
+        match RespFrame::decode(src) {
+            Ok(frame) => Ok(Some(frame)),
+            Err(RespError::NotComplete) => Ok(None),
+            Err(e) => Err(e.into()),
         }
     }
 }

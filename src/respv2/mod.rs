@@ -40,6 +40,16 @@ mod tests {
     use super::*;
 
     #[test]
+    fn respv2_should_work() {
+        let s: &str = "*3\r\n$3\r\nSET\r\n$3\r\nkey\r\n$5\r\nvalue\r\n*1\r\n+OK\r\n*2\r\n$3\r\nGET\r\n$3\r\nkey\r\n$5\r\nvalue\r\n*4\r\n$4\r\nHSET\r\n$3\r\nkey\r\n$5\r\nfield\r\n$5\r\nvalue\r\n*1\r\n-ERR\r\n*3\r\n$4\r\nHGET\r\n$3\r\nkey\r\n$5\r\nfield\r\n$5\r\nvalue\r\n*3\r\n$4\r\nSADD\r\n$3\r\nkey\r\n$6\r\nmember\r\n:1\r\n";
+
+        let mut buf = BytesMut::from(s);
+
+        let resp = RespFrame::decode(&mut buf);
+        assert!(resp.is_ok());
+    }
+
+    #[test]
     fn respv2_decode_simple_string_should_work() {
         let mut buf = BytesMut::from("+OK\r\n");
         let resp = RespFrame::decode(&mut buf).unwrap();

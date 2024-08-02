@@ -156,8 +156,8 @@ fn map_length(input: &mut &[u8]) -> PResult<()> {
     let len: u32 = digit1.parse_to().parse_next(input)?;
     crlf(input)?;
     for _ in 0..len {
-        let _ = parse_resp(input)?;
-        let _ = parse_resp(input)?;
+        parse_length(input)?;
+        parse_length(input)?;
     }
 
     Ok(())
