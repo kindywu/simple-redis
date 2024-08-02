@@ -8,12 +8,13 @@ use crate::{BulkString, RespArray, RespNull, SimpleError, SimpleString};
 use super::{RespDecode, RespError};
 
 #[enum_dispatch(RespEncode)]
-#[derive(Debug, Clone, Hash, Eq, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, PartialEq, Hash, Eq, PartialOrd)]
 pub enum RespFrame {
     Null(RespNull),
     SimpleString(SimpleString),
     Error(SimpleError),
     Integer(i64),
+    Boolean(bool),
     BulkString(Option<BulkString>),
     Array(Option<RespArray>),
 }

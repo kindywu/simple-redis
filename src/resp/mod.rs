@@ -1,4 +1,5 @@
 mod array;
+mod bool;
 mod bulk_string;
 mod integer;
 mod null;
